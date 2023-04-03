@@ -13,7 +13,7 @@ for imageName in images:
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     image = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
-    image_filters.filter_image(gray)
+    # image_filters.filter_image(gray)
 
     extracted_cars = ec.extract_cars(image)
     for car in extracted_cars:
