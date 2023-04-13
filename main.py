@@ -2,11 +2,14 @@ import os
 import cv2
 import numpy as np
 import extract_cars as ec
+import speedDetection as sd
 from matplotlib import pyplot as plt
 
 import image_filters
 
 images = os.listdir('./assets')
+
+# sd.detect()
 
 for imageName in images:
     img_bgr = cv2.imread(f'./assets/{imageName}')
