@@ -15,39 +15,37 @@ input_size = 320
 confThreshold = 0.2
 nmsThreshold = 0.2
 
+# Print variables
 font_color = (0, 0, 255)
 font_size = 0.5
 font_thickness = 2
 
-# Middle cross line position
+# Cross line position
 middle_line_position = 100
-up_line_position = middle_line_position - 15
-down_line_position = middle_line_position + 15
+# up_line_position = middle_line_position - 15
+# down_line_position = middle_line_position + 15
 
 # Store Coco Names in a list
 classesFile = "coco.names"
 classNames = open(classesFile).read().strip().split('\n')
-print(classNames)
-print(len(classNames))
+# print(classNames)
+# print(len(classNames))
 
 # class index for our required detection classes
 required_class_index = [2, 3, 5, 7]
 
 detected_classNames = []
 
-## Model Files
+# YoloV3 Files
 modelConfiguration = 'yolov3-320.cfg'
 modelWeigheights = 'yolov3-320.weights'  # https://pjreddie.com/darknet/yolo/
 
-# configure the network model
+# Network Configurations
 net = cv2.dnn.readNetFromDarknet(modelConfiguration, modelWeigheights)
-
-# Configure the network backend
-
 net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
-# Define random colour for each class
+# Random Colors for each class
 np.random.seed(42)
 colors = np.random.randint(0, 255, size=(len(classNames), 3), dtype='uint8')
 
@@ -74,7 +72,7 @@ def count_vehicle(box_id, img):
     center = find_center(x, y, w, h)
     ix, iy = center
 
-    # Find the current position of the vehicle
+    # Find the current position of the vehicle and put it in the right list
     if iy > middle_line_position:
         if id not in temp_up_list:
             temp_up_list.append(id)
@@ -89,9 +87,8 @@ def count_vehicle(box_id, img):
             temp_up_list.remove(id)
             count_list[index] = count_list[index] + 1
 
-    # Draw circle in the middle of the rectangle
-    cv2.circle(img, center, 2, (0, 0, 255), -1)  # end here
-    # print(up_list, down_list)
+    # Draw red circle at center
+    cv2.circle(img, center, 2, (0, 0, 255), -1)
 
 
 # Function for finding the detected objects from the network output
@@ -118,20 +115,17 @@ def postProcess(outputs, img):
 
     # Apply Non-Max Suppression
     indices = cv2.dnn.NMSBoxes(boxes, confidence_scores, confThreshold, nmsThreshold)
-    # print(classIds)
+
     if len(indices) > 0:
         for i in indices.flatten():
             x, y, w, h = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
-            # print(x,y,w,h)
-
             color = [int(c) for c in colors[classIds[i]]]
             name = classNames[classIds[i]]
             detected_classNames.append(name)
-            # Draw classname and confidence score
-            cv2.putText(img, f'{name.upper()} {int(confidence_scores[i] * 100)}%',
-                        (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+            # Draw information
+            cv2.putText(img, f'{name.upper()} {int(confidence_scores[i] * 100)}%', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-            # Draw bounding rectangle
+            # Draw rectangle
             cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)
             detection.append([x, y, w, h, required_class_index.index(classIds[i])])
 
@@ -158,13 +152,11 @@ def realTime():
         # Find the objects from the network output
         postProcess(outputs, img)
 
-        # Draw the crossing lines
-
+        # Draw crossing line
         cv2.line(img, (0, middle_line_position), (iw, middle_line_position), (255, 0, 255), 2)
 
-        # Draw counting texts in the frame
+        # Draw counters
         cv2.putText(img, "Counter", (110, 20), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-        # cv2.putText(img, "Down", (160, 20), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
         cv2.putText(img, "Car:        " + str(count_list[0]), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     font_color, font_thickness)
         cv2.putText(img, "Motorbike:  " + str(count_list[1]), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size,
@@ -177,67 +169,54 @@ def realTime():
         # Show the frames
         cv2.imshow('Output', img)
 
+        # For stopping the video
         if cv2.waitKey(1) == ord('q'):
             break
-    #
-    # # Write the vehicle counting information in a file and save it
-    #
-    # with open("data.csv", 'w') as f1:
-    #     cwriter = csv.writer(f1)
-    #     cwriter.writerow(['Direction', 'car', 'motorbike', 'bus', 'truck'])
-    #     up_list.insert(0, "Up")
-    #     down_list.insert(0, "Down")
-    #     cwriter.writerow(up_list)
-    #     cwriter.writerow(down_list)
-    # f1.close()
-    # Finally realese the capture object and destroy all active windows
+
     cap.release()
     cv2.destroyAllWindows()
 
 
-image_file = 'image.png'
+# image_file = 'image.png'
 
-
-def from_static_image(image):
-    img = cv2.imread(image)
-
-    blob = cv2.dnn.blobFromImage(img, 1 / 255, (input_size, input_size), [0, 0, 0], 1, crop=False)
-
-    # Set the input of the network
-    net.setInput(blob)
-    layersNames = net.getLayerNames()
-    outputNames = [(layersNames[i - 1]) for i in net.getUnconnectedOutLayers()]
-    # Feed data to the network
-    outputs = net.forward(outputNames)
-
-    # Find the objects from the network output
-    postProcess(outputs, img)
-
-    # count the frequency of detected classes
-    frequency = collections.Counter(detected_classNames)
-    print(frequency)
-    # Draw counting texts in the frame
-    cv2.putText(img, "Car:        " + str(frequency['car']), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color,
-                font_thickness)
-    cv2.putText(img, "Motorbike:  " + str(frequency['motorbike']), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size,
-                font_color, font_thickness)
-    cv2.putText(img, "Bus:        " + str(frequency['bus']), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color,
-                font_thickness)
-    cv2.putText(img, "Truck:      " + str(frequency['truck']), (20, 100), cv2.FONT_HERSHEY_SIMPLEX, font_size,
-                font_color, font_thickness)
-
-    cv2.imshow("image", img)
-
-    cv2.waitKey(0)
-
-    # save the data to a csv file
-    with open("static-data.csv", 'a') as f1:
-        cwriter = csv.writer(f1)
-        cwriter.writerow([image, frequency['car'], frequency['motorbike'], frequency['bus'], frequency['truck']])
-    f1.close()
-
+# def from_static_image(image):
+#     img = cv2.imread(image)
+#
+#     blob = cv2.dnn.blobFromImage(img, 1 / 255, (input_size, input_size), [0, 0, 0], 1, crop=False)
+#
+#     # Set the input of the network
+#     net.setInput(blob)
+#     layersNames = net.getLayerNames()
+#     outputNames = [(layersNames[i - 1]) for i in net.getUnconnectedOutLayers()]
+#     # Feed data to the network
+#     outputs = net.forward(outputNames)
+#
+#     # Find the objects from the network output
+#     postProcess(outputs, img)
+#
+#     # count the frequency of detected classes
+#     frequency = collections.Counter(detected_classNames)
+#     print(frequency)
+#     # Draw counting texts in the frame
+#     cv2.putText(img, "Car:        " + str(frequency['car']), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color,
+#                 font_thickness)
+#     cv2.putText(img, "Motorbike:  " + str(frequency['motorbike']), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+#                 font_color, font_thickness)
+#     cv2.putText(img, "Bus:        " + str(frequency['bus']), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color,
+#                 font_thickness)
+#     cv2.putText(img, "Truck:      " + str(frequency['truck']), (20, 100), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+#                 font_color, font_thickness)
+#
+#     cv2.imshow("image", img)
+#
+#     cv2.waitKey(0)
+#
+#     # save the data to a csv file
+#     with open("static-data.csv", 'a') as f1:
+#         cwriter = csv.writer(f1)
+#         cwriter.writerow([image, frequency['car'], frequency['motorbike'], frequency['bus'], frequency['truck']])
+#     f1.close()
 
 if __name__ == '__main__':
     print(cv2.getBuildInformation())
     realTime()
-    # from_static_image(image_file)
