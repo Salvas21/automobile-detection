@@ -22,8 +22,6 @@ font_thickness = 2
 
 # Cross line position
 middle_line_position = 100
-# up_line_position = middle_line_position - 15
-# down_line_position = middle_line_position + 15
 
 # Store Coco Names in a list
 classesFile = "coco.names"
@@ -49,6 +47,10 @@ net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 np.random.seed(42)
 colors = np.random.randint(0, 255, size=(len(classNames), 3), dtype='uint8')
 
+car_color = colors[2].tolist()
+bike_color = colors[3].tolist()
+bus_color = colors[5].tolist()
+truck_color = colors[7].tolist()
 
 # Function for finding the center of a rectangle
 def find_center(x, y, w, h):
@@ -156,15 +158,15 @@ def realTime():
         cv2.line(img, (0, middle_line_position), (iw, middle_line_position), (255, 0, 255), 2)
 
         # Draw counters
-        cv2.putText(img, "Counter", (110, 20), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-        cv2.putText(img, "Car:        " + str(count_list[0]), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size,
-                    font_color, font_thickness)
-        cv2.putText(img, "Motorbike:  " + str(count_list[1]), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size,
-                    font_color, font_thickness)
-        cv2.putText(img, "Bus:        " + str(count_list[2]), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size,
-                    font_color, font_thickness)
-        cv2.putText(img, "Truck:      " + str(count_list[3]), (20, 100), cv2.FONT_HERSHEY_SIMPLEX,
-                    font_size, font_color, font_thickness)
+        # cv2.putText(img, "Counter", (110, 20), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+        cv2.putText(img, "Car:        " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+                    car_color, font_thickness)
+        cv2.putText(img, "Motorbike:  " + str(count_list[1]), (20, 280), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+                    bike_color, font_thickness)
+        cv2.putText(img, "Bus:        " + str(count_list[2]), (20, 300), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+                    bus_color, font_thickness)
+        cv2.putText(img, "Truck:      " + str(count_list[3]), (20, 320), cv2.FONT_HERSHEY_SIMPLEX,
+                    font_size, truck_color, font_thickness)
 
         # Show the frames
         cv2.imshow('Output', img)
