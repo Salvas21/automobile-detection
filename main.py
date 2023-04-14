@@ -149,6 +149,8 @@ def post_process(outputs, img):
             cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)
             detection.append([x, y, w, h, required_class_index.index(class_ids[i])])
 
+            # Draw color box
+
 
 
         # Update the tracker for each object
