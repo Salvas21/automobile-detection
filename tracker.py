@@ -25,7 +25,7 @@ class EuclideanDistTracker:
                 distance = math.hypot(cx - point[0], cy - point[1])
 
                 # can change the detection distance threshold (basic = 25)
-                if distance < 30:
+                if distance < 35:
                     self.center_points[id] = (cx, cy)
                     objects_bb_ids.append([x, y, width, height, id, index])
                     same_object_detected = True
