@@ -1,4 +1,7 @@
 import collections
+import math
+import time
+
 import cv2
 import numpy as np
 import tracker as tracker_class
@@ -100,6 +103,13 @@ def post_process(outputs, img):
     class_ids = []
     confidence_scores = []
     detection = []
+
+    # Variables for speed
+    distance_in_meters = 27
+    time_in_seconds = 1
+    prev_frame_time = 1
+    fps = 30
+
     for output in outputs:
         for det in output:
             scores = det[5:]
@@ -124,6 +134,13 @@ def post_process(outputs, img):
             name = class_names[class_ids[i]]
             detected_class_names.append(name)
 
+            # Detect speed
+            d_total = math.sqrt(y ** 2)
+            v = d_total / prev_frame_time * 3.6
+            v = (600 - (y * 0.6))/6
+
+            cv2.putText(img, str(int(v)) + " km/h", (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+
             # Draw information
             cv2.putText(img, f'{name.upper()} {int(confidence_scores[i] * 100)}%', (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
@@ -132,10 +149,16 @@ def post_process(outputs, img):
             cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)
             detection.append([x, y, w, h, required_class_index.index(class_ids[i])])
 
+
+
         # Update the tracker for each object
         boxes_ids = tracker.update(detection)
         for box_id in boxes_ids:
             count_vehicle(box_id, img)
+
+    new_frame_time = time.time()
+    fps = 1 / (new_frame_time - prev_frame_time)
+    prev_frame_time = new_frame_time
 
 
 def video_detection(video_name):
