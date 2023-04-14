@@ -68,9 +68,7 @@ def find_center(x, y, w, h):
 # List for store vehicle count information
 temp_up_list = []
 temp_down_list = []
-up_list = [0, 0, 0, 0]
-down_list = [0, 0, 0, 0]
-
+count_list = [0, 0, 0, 0]
 
 # Function for count vehicle
 def count_vehicle(box_id, img):
@@ -82,29 +80,18 @@ def count_vehicle(box_id, img):
 
     # Find the current position of the vehicle
     if iy > middle_line_position:
-        temp_up_list.append(id)
+        if id not in temp_up_list:
+            temp_up_list.append(id)
+        if id in temp_down_list:
+            temp_down_list.remove(id)
+            count_list[index] = count_list[index] + 1
+
     if iy < middle_line_position:
+        if id not in temp_down_list:
+            temp_down_list.append(id)
         if id in temp_up_list:
             temp_up_list.remove(id)
-            up_list[index] = up_list[index] + 1
-
-    # if (iy > up_line_position) and (iy < middle_line_position):
-    #     if id not in temp_up_list:
-    #         temp_up_list.append(id)
-    #
-    # elif down_line_position > iy > middle_line_position:
-    #     if id not in temp_down_list:
-    #         temp_down_list.append(id)
-    #
-    # elif iy < up_line_position:
-    #     if id in temp_down_list:
-    #         temp_down_list.remove(id)
-    #         up_list[index] = up_list[index]+1
-    #
-    # elif iy > down_line_position:
-    #     if id in temp_up_list:
-    #         temp_up_list.remove(id)
-    #         down_list[index] = down_list[index] + 1
+            count_list[index] = count_list[index] + 1
 
     # Draw circle in the middle of the rectangle
     cv2.circle(img, center, 2, (0, 0, 255), -1)  # end here
@@ -182,13 +169,13 @@ def realTime():
         # Draw counting texts in the frame
         cv2.putText(img, "Counter", (110, 20), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
         # cv2.putText(img, "Down", (160, 20), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-        cv2.putText(img, "Car:        " + str(up_list[0] + down_list[0]), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(img, "Car:        " + str(count_list[0]), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     font_color, font_thickness)
-        cv2.putText(img, "Motorbike:  " + str(up_list[1] + down_list[1]), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(img, "Motorbike:  " + str(count_list[1]), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     font_color, font_thickness)
-        cv2.putText(img, "Bus:        " + str(up_list[2] + down_list[2]), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(img, "Bus:        " + str(count_list[2]), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     font_color, font_thickness)
-        cv2.putText(img, "Truck:      " + str(up_list[3] + down_list[3]), (20, 100), cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(img, "Truck:      " + str(count_list[3]), (20, 100), cv2.FONT_HERSHEY_SIMPLEX,
                     font_size, font_color, font_thickness)
 
         # Show the frames
