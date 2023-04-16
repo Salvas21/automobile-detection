@@ -95,6 +95,8 @@ def count_vehicle(box_id, img):
 
     # Draw red circle at center
     cv2.circle(img, center, 2, (0, 0, 255), -1)
+    # TODO : think what we do about ID on CAR
+    # cv2.putText(img, "ID: " + str(id), center, cv2.FONT_HERSHEY_SIMPLEX, 0.3, car_color, 3)
 
 
 # Function for finding the detected objects from the network output
@@ -139,7 +141,7 @@ def post_process(outputs, img):
             # Detect speed
             d_total = math.sqrt(y ** 2)
             v = d_total / prev_frame_time * 3.6
-            v = (600 - (y * 0.6))/6
+            v = (600 - (y * 0.6)) / 6
 
             cv2.putText(img, str(int(v)) + " km/h", (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
@@ -151,9 +153,7 @@ def post_process(outputs, img):
             cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)
             detection.append([x, y, w, h, required_class_index.index(class_ids[i])])
 
-            # Draw color box
-
-
+            # TODO : Draw color box
 
         # Update the tracker for each object
         boxes_ids = tracker.update(detection)
@@ -265,4 +265,3 @@ if __name__ == '__main__':
     # plate_detection.detect_plate(cv2.imread("./assets/RK2711X.png")) # NOT OK
 
     # read plates up to half height
-
