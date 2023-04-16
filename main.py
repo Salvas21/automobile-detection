@@ -6,6 +6,7 @@ import time
 import cv2
 import numpy as np
 import tracker as tracker_class
+import plate_detection
 
 # Initialize Tracker
 tracker = tracker_class.EuclideanDistTracker()
@@ -203,6 +204,10 @@ def video_detection(video_name):
         # Show the frames
         cv2.imshow('Output', resized)
 
+        # To stop motion the video
+        # if cv2.waitKey(0) == ord('c'):
+        #     continue
+
         # For stopping the video
         if cv2.waitKey(1) == ord('q'):
             break
@@ -250,3 +255,14 @@ if __name__ == '__main__':
     else:
         video_name = sys.argv[1]
     video_detection(video_name)
+
+    # 3/6 OK
+    # plate_detection.detect_plate(cv2.imread("./assets/N37PBK.png")) # NOT OK
+    # plate_detection.detect_plate(cv2.imread("./assets/X11TQD.png")) # OK
+    # plate_detection.detect_plate(cv2.imread("./assets/Z08TLR.png")) # OK
+    # plate_detection.detect_plate(cv2.imread("./assets/X72NDV.png")) # NOT OK
+    # plate_detection.detect_plate(cv2.imread("./assets/W76GSW.png")) # OK
+    # plate_detection.detect_plate(cv2.imread("./assets/RK2711X.png")) # NOT OK
+
+    # read plates up to half height
+
