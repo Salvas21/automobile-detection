@@ -1,5 +1,6 @@
 import collections
 import math
+import sys
 import time
 
 import cv2
@@ -168,9 +169,9 @@ def video_detection(video_name):
     cap = cv2.VideoCapture(video_name)
     while True:
         success, img = cap.read()
-        img = cv2.resize(img, (0, 0), None, 0.5, 0.5)
-        ih, iw, channels = img.shape
-        blob = cv2.dnn.blobFromImage(img, 1 / 255, (input_size, input_size), [0, 0, 0], 1, crop=False)
+        resized = cv2.resize(img, (0, 0), None, 0.5, 0.5)
+        ih, iw, channels = resized.shape
+        blob = cv2.dnn.blobFromImage(resized, 1 / 255, (input_size, input_size), [0, 0, 0], 1, crop=False)
 
         # Set the input of the network
         net.setInput(blob)
@@ -180,24 +181,26 @@ def video_detection(video_name):
         outputs = net.forward(output_names)
 
         # Find the objects from the network output
-        post_process(outputs, img)
+        post_process(outputs, resized)
+
+        middle_line_position = int(resized.shape[0] / 3)
 
         # Draw crossing line
-        cv2.line(img, (0, middle_line_position), (iw, middle_line_position), (255, 0, 255), 2)
+        cv2.line(resized, (0, middle_line_position), (iw, middle_line_position), (255, 0, 255), 2)
 
         # Draw detection counters
         # cv2.putText(img, "Counter", (110, 20), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-        cv2.putText(img, "Car:        " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(resized, "Car:        " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     car_color, font_thickness)
-        cv2.putText(img, "Motorbike:  " + str(count_list[1]), (20, 280), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(resized, "Motorbike:  " + str(count_list[1]), (20, 280), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     bike_color, font_thickness)
-        cv2.putText(img, "Bus:        " + str(count_list[2]), (20, 300), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(resized, "Bus:        " + str(count_list[2]), (20, 300), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     bus_color, font_thickness)
-        cv2.putText(img, "Truck:      " + str(count_list[3]), (20, 320), cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(resized, "Truck:      " + str(count_list[3]), (20, 320), cv2.FONT_HERSHEY_SIMPLEX,
                     font_size, truck_color, font_thickness)
 
         # Show the frames
-        cv2.imshow('Output', img)
+        cv2.imshow('Output', resized)
 
         # For stopping the video
         if cv2.waitKey(1) == ord('q'):
@@ -241,5 +244,8 @@ def image_detection(image_name):
 
 
 if __name__ == '__main__':
-    video_name = './assets/speedDetectionTest.mp4'
+    if len(sys.argv) < 2:
+        video_name = './assets/speedDetectionTest.mp4'
+    else:
+        video_name = sys.argv[1]
     video_detection(video_name)
