@@ -1,6 +1,7 @@
 import collections
 import math
 import sys
+import threading
 import time
 
 import cv2
@@ -35,6 +36,9 @@ class_names = open(classes_file).read().strip().split('\n')
 required_class_index = [2, 3, 5, 7]
 
 detected_class_names = []
+
+lock = threading.Lock()
+plates = {}
 
 # YoloV3 Files
 model_configuration = 'yolov3-320.cfg'
@@ -100,7 +104,7 @@ def count_vehicle(box_id, img):
 
 
 # Function for finding the detected objects from the network output
-def post_process(outputs, img):
+def post_process(outputs, img, original_img):
     global detected_class_names
     height, width = img.shape[:2]
     boxes = []
@@ -155,14 +159,61 @@ def post_process(outputs, img):
 
             # TODO : Draw color box
 
+        threads = []
         # Update the tracker for each object
         boxes_ids = tracker.update(detection)
         for box_id in boxes_ids:
             count_vehicle(box_id, img)
+            x, y, w, h, id, index = box_id
 
+            # if len(plates) > 0 and x > 0 and y > 0 and h > 0 and w > 0:
+            #     big_x = x * 2
+            #     big_y = y * 2
+            #     big_w = w * 2
+            #     big_h = h * 2
+            #
+            #     rect = original_img[big_y:big_y + big_h, big_x:big_x + big_w]
+            #     cv2.imshow('Plate detection', rect)
+            #     if cv2.waitKey(0):
+            #         continue
+
+            global plates
+            if id in plates:
+                cv2.putText(img, "Plate: " + str(plates[id]), (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (0, 255, 255), 1)
+
+            with lock:
+                if id not in plates and id in temp_up_list and id not in count_list:
+                    thread = threading.Thread(target=handle_plate_detection_of_box, args=(box_id, original_img))
+                    thread.start()
+                    threads.append(thread)
+
+        for thread in threads:
+            thread.join()
     new_frame_time = time.time()
     fps = 1 / (new_frame_time - prev_frame_time)
     prev_frame_time = new_frame_time
+
+
+def handle_plate_detection_of_box(box_id, original_img):
+    x, y, w, h, id, index = box_id
+    big_x = x * 2
+    big_y = y * 2
+    big_w = w * 2
+    big_h = h * 2
+
+    img_h, img_w, c = original_img.shape
+    ratio_h = img_h * 0.12
+    ratio_w = img_w * 0.12
+
+    if big_h > ratio_h or big_w > ratio_w:
+        rect = original_img[big_y:big_y + big_h, big_x:big_x + big_w]
+        plate = plate_detection.detect_plate(rect)
+        plate = "".join(ch for ch in plate if ch.isalnum())
+        if len(plate) >= 4:
+            with lock:
+                global plates
+                plates[id] = plate
 
 
 def video_detection(video_name):
@@ -170,6 +221,8 @@ def video_detection(video_name):
     cap = cv2.VideoCapture(video_name)
     while True:
         success, img = cap.read()
+        if not success:
+            break
         resized = cv2.resize(img, (0, 0), None, 0.5, 0.5)
         ih, iw, channels = resized.shape
         blob = cv2.dnn.blobFromImage(resized, 1 / 255, (input_size, input_size), [0, 0, 0], 1, crop=False)
@@ -182,7 +235,7 @@ def video_detection(video_name):
         outputs = net.forward(output_names)
 
         # Find the objects from the network output
-        post_process(outputs, resized)
+        post_process(outputs, resized, img)
 
         global middle_line_position
         middle_line_position = int(resized.shape[0] / 3)
@@ -229,7 +282,7 @@ def image_detection(image_name):
     outputs = net.forward(output_names)
 
     # Find the objects from the network output
-    post_process(outputs, img)
+    post_process(outputs, img, None)
 
     # count the frequency of detected classes
     frequency = collections.Counter(detected_class_names)
@@ -255,6 +308,8 @@ if __name__ == '__main__':
     else:
         video_name = sys.argv[1]
     video_detection(video_name)
+
+    print(plates)
 
     # 3/6 OK
     # plate_detection.detect_plate(cv2.imread("./assets/N37PBK.png")) # NOT OK
