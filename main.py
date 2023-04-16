@@ -183,6 +183,7 @@ def video_detection(video_name):
         # Find the objects from the network output
         post_process(outputs, resized)
 
+        global middle_line_position
         middle_line_position = int(resized.shape[0] / 3)
 
         # Draw crossing line
