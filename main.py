@@ -37,8 +37,6 @@ class_names = open(classes_file).read().strip().split('\n')
 # class index for our required detection classes (car, motorbike, bus, truck as in pickup)
 required_class_index = [2, 3, 5, 7]
 
-detected_class_names = []
-
 lock = threading.Lock()
 plates = {}
 carColors = {}
@@ -106,7 +104,6 @@ def count_vehicle(box_id, img):
 
 # Function for finding the detected objects from the network output
 def post_process(outputs, img, original_img):
-    global detected_class_names
     height, width = img.shape[:2]
     boxes = []
     class_ids = []
@@ -137,13 +134,12 @@ def post_process(outputs, img, original_img):
     # Apply Non-Max Suppression
     indices = cv2.dnn.NMSBoxes(boxes, confidence_scores, conf_threshold, nms_threshold)
 
-    # TODO : dont know what this does
+    # Check each recognised object
     if len(indices) > 0:
         for i in indices.flatten():
             x, y, w, h = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
             color = [int(c) for c in colors[class_ids[i]]]
             name = class_names[class_ids[i]]
-            detected_class_names.append(name)
 
             # TODO : clean this up
             # detect speed from this random equation with y value of the detected object
@@ -278,7 +274,6 @@ def video_detection(video_name):
         # draw middle (crossing) line (specifies where the objects are classified)
         cv2.line(resized, (0, middle_line_position), (iw, middle_line_position), (255, 0, 255), 2)
 
-        # TODO : keep all of the classes ?
         # draw data counters
         cv2.putText(resized, "Car(s):           " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     car_color, font_thickness)
@@ -302,7 +297,7 @@ def video_detection(video_name):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        video_name = './assets/speedDetectionTest.mp4'
+        video_name = './assets/toto-4k.mp4'
     else:
         video_name = sys.argv[1]
     video_detection(video_name)
