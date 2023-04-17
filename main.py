@@ -139,6 +139,7 @@ def post_process(outputs, img, original_img):
     # Apply Non-Max Suppression
     indices = cv2.dnn.NMSBoxes(boxes, confidence_scores, conf_threshold, nms_threshold)
 
+    # TODO : dont know what this does
     if len(indices) > 0:
         for i in indices.flatten():
             x, y, w, h = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
