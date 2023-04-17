@@ -102,8 +102,6 @@ def count_vehicle(box_id, img):
 
     # Draw red circle at center
     cv2.circle(img, center, 2, (0, 0, 255), -1)
-    # TODO : think what we do about ID on CAR
-    # cv2.putText(img, "ID: " + str(id), center, cv2.FONT_HERSHEY_SIMPLEX, 0.3, car_color, 3)
 
 
 # Function for finding the detected objects from the network output
@@ -282,13 +280,13 @@ def video_detection(video_name):
 
         # TODO : keep all of the classes ?
         # draw data counters
-        cv2.putText(resized, "Car(s):        " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(resized, "Car(s):           " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     car_color, font_thickness)
-        cv2.putText(resized, "Motorbike:  " + str(count_list[1]), (20, 280), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(resized, "Motorbike:        " + str(count_list[1]), (20, 280), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     bike_color, font_thickness)
-        cv2.putText(resized, "Bus(es):        " + str(count_list[2]), (20, 300), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(resized, "Bus(es):          " + str(count_list[2]), (20, 300), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     bus_color, font_thickness)
-        cv2.putText(resized, "Truck(s):      " + str(count_list[3]), (20, 320), cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(resized, "Truck(s):         " + str(count_list[3]), (20, 320), cv2.FONT_HERSHEY_SIMPLEX,
                     font_size, truck_color, font_thickness)
 
         # show the frames
