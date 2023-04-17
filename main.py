@@ -147,6 +147,7 @@ def post_process(outputs, img, original_img):
             name = class_names[class_ids[i]]
             detected_class_names.append(name)
 
+            # TODO : clean this up
             # detect speed from this random equation with y value of the detected object
             d_total = math.sqrt(y ** 2)
             v = d_total / prev_frame_time * 3.6
