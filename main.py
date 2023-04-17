@@ -6,6 +6,8 @@ import time
 
 import cv2
 import numpy as np
+
+import colorDetection
 import tracker as tracker_class
 import plate_detection
 
@@ -39,6 +41,7 @@ detected_class_names = []
 
 lock = threading.Lock()
 plates = {}
+carColors = {}
 
 # YoloV3 Files
 model_configuration = 'yolov3-320.cfg'
@@ -176,6 +179,16 @@ def post_process(outputs, img, original_img):
             #     cv2.imshow('Plate detection', rect)
             #     if cv2.waitKey(0):
             #         continue
+            global carColors
+            if id in carColors:
+                cv2.putText(img, "Color: " + str(carColors[id]), (x, y - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (0, 255, 255), 1)
+
+            with lock:
+                if id not in carColors and id in temp_up_list and id not in count_list:
+                    thread = threading.Thread(target=handle_color_detection_of_box, args=(box_id, img))
+                    thread.start()
+                    threads.append(thread)
 
             global plates
             if id in plates:
@@ -193,6 +206,17 @@ def post_process(outputs, img, original_img):
     new_frame_time = time.time()
     fps = 1 / (new_frame_time - prev_frame_time)
     prev_frame_time = new_frame_time
+
+
+def handle_color_detection_of_box(box_id, img):
+    x, y, w, h, id, index = box_id
+
+    if x > 0 and y > 0:
+        rect = img[y:y + h, x:x + w]
+        color = colorDetection.find_most_common_pixel(rect)
+        with lock:
+            global plates
+            carColors[id] = color
 
 
 def handle_plate_detection_of_box(box_id, original_img):
