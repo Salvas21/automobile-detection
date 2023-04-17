@@ -17,7 +17,7 @@ def find_most_common_pixel(image):
                 histogram[pixel_val] = 1  # pixel_val encountered for the first time
 
     mode_pixel_val = max(histogram, key=histogram.get)  # Find pixel_val whose count is maximum
-    print(int2rgb(mode_pixel_val))
+    # print(int2rgb(mode_pixel_val))
     return int2rgb(mode_pixel_val)
 
 

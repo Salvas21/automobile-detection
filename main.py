@@ -115,12 +115,14 @@ def post_process(outputs, img, original_img):
     confidence_scores = []
     detection = []
 
+    # TODO : What we do with this ???
     # Variables for speed
     distance_in_meters = 27
     time_in_seconds = 1
     prev_frame_time = 1
     fps = 30
 
+    # selection of the outputs in relation to its confidence and the confidence threshold
     for output in outputs:
         for det in output:
             scores = det[5:]
@@ -128,7 +130,6 @@ def post_process(outputs, img, original_img):
             confidence = scores[class_id]
             if class_id in required_class_index:
                 if confidence > conf_threshold:
-                    # print(class_id)
                     w, h = int(det[2] * width), int(det[3] * height)
                     x, y = int((det[0] * width) - w / 2), int((det[1] * height) - h / 2)
                     boxes.append([x, y, w, h])
@@ -145,64 +146,64 @@ def post_process(outputs, img, original_img):
             name = class_names[class_ids[i]]
             detected_class_names.append(name)
 
-            # Detect speed
+            # detect speed from this random equation with y value of the detected object
             d_total = math.sqrt(y ** 2)
             v = d_total / prev_frame_time * 3.6
             v = (600 - (y * 0.6)) / 6
 
+            # draw km/h and class name and confidence
             cv2.putText(img, str(int(v)) + " km/h", (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-
-            # Draw information
             cv2.putText(img, f'{name.upper()} {int(confidence_scores[i] * 100)}%', (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-            # Draw rectangle
+            # Draw detection box
             cv2.rectangle(img, (x, y), (x + w, y + h), color, 1)
             detection.append([x, y, w, h, required_class_index.index(class_ids[i])])
 
-            # TODO : Draw color box
-
-        threads = []
         # Update the tracker for each object
         boxes_ids = tracker.update(detection)
+
+        # for each boxes (detected automobile)
+        threads = []
         for box_id in boxes_ids:
+            # count the vehicule if touches / is over top of the middle detection line
             count_vehicle(box_id, img)
+
+            # get info from box
             x, y, w, h, id, index = box_id
 
-            # if len(plates) > 0 and x > 0 and y > 0 and h > 0 and w > 0:
-            #     big_x = x * 2
-            #     big_y = y * 2
-            #     big_w = w * 2
-            #     big_h = h * 2
-            #
-            #     rect = original_img[big_y:big_y + big_h, big_x:big_x + big_w]
-            #     cv2.imshow('Plate detection', rect)
-            #     if cv2.waitKey(0):
-            #         continue
+            # if car color already found, draw it on top of box
             global carColors
             if id in carColors:
-                cv2.putText(img, "Color: " + str(carColors[id]), (x, y - 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                            (0, 255, 255), 1)
+                cv2.putText(img, "Color: " + str(carColors[id]), (x, y - 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (50, 180, 235), 1)
 
+            # start a thread if color not found yet with current box position
             with lock:
                 if id not in carColors and id in temp_up_list and id not in count_list:
                     thread = threading.Thread(target=handle_color_detection_of_box, args=(box_id, img))
                     thread.start()
                     threads.append(thread)
 
+            # if car plate already found, draw it on top of box
             global plates
             if id in plates:
                 cv2.putText(img, "Plate: " + str(plates[id]), (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                             (0, 255, 255), 1)
 
+            # start a thread if car plate not found yet with current box position
             with lock:
-                if id not in plates and id in temp_up_list and id not in count_list:
+                # if plate not found and currently traveling up
+                if id not in plates and id in temp_up_list:
+                    plates[id] = ""
                     thread = threading.Thread(target=handle_plate_detection_of_box, args=(box_id, original_img))
                     thread.start()
                     threads.append(thread)
 
+        # TODO : might be better to not wait for threads to finish ?
         for thread in threads:
             thread.join()
+
     new_frame_time = time.time()
     fps = 1 / (new_frame_time - prev_frame_time)
     prev_frame_time = new_frame_time
@@ -221,69 +222,75 @@ def handle_color_detection_of_box(box_id, img):
 
 def handle_plate_detection_of_box(box_id, original_img):
     x, y, w, h, id, index = box_id
+    # transform dimensions to original image size
+    # (because we resize the 2160p video to a 1080p to simplify detection and tracking,
+    # but we want the original quality to have the best chance at detecting the plates)
     big_x = x * 2
     big_y = y * 2
     big_w = w * 2
     big_h = h * 2
 
     img_h, img_w, c = original_img.shape
+    # arbitrary ratio at which if the box of the detected object is smaller, we don't bother
+    # looking for a plate since it is probably too small to even detect letters
     ratio_h = img_h * 0.12
     ratio_w = img_w * 0.12
 
     if big_h > ratio_h or big_w > ratio_w:
         rect = original_img[big_y:big_y + big_h, big_x:big_x + big_w]
         plate = plate_detection.detect_plate(rect)
-        plate = "".join(ch for ch in plate if ch.isalnum())
         if len(plate) >= 4:
             with lock:
                 global plates
                 plates[id] = plate
+        else:
+            del plates[id]
 
 
 def video_detection(video_name):
-    # Initialize the videocapture object
     cap = cv2.VideoCapture(video_name)
     while True:
         success, img = cap.read()
+        # stops while true loop when the video is over
         if not success:
             break
+
+        # resizes the video to ease processing
         resized = cv2.resize(img, (0, 0), None, 0.5, 0.5)
         ih, iw, channels = resized.shape
         blob = cv2.dnn.blobFromImage(resized, 1 / 255, (input_size, input_size), [0, 0, 0], 1, crop=False)
 
-        # Set the input of the network
+        # setup deep neural network
         net.setInput(blob)
         layers_names = net.getLayerNames()
         output_names = [(layers_names[i - 1]) for i in net.getUnconnectedOutLayers()]
-        # Feed data to the network
+
+        # send data to network
         outputs = net.forward(output_names)
 
-        # Find the objects from the network output
+        # find objects from network output
         post_process(outputs, resized, img)
 
+        # sets middle line at 1/3 of the resized video height
         global middle_line_position
         middle_line_position = int(resized.shape[0] / 3)
 
-        # Draw crossing line
+        # draw middle (crossing) line (specifies where the objects are classified)
         cv2.line(resized, (0, middle_line_position), (iw, middle_line_position), (255, 0, 255), 2)
 
-        # Draw detection counters
-        # cv2.putText(img, "Counter", (110, 20), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-        cv2.putText(resized, "Car:        " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        # TODO : keep all of the classes ?
+        # draw data counters
+        cv2.putText(resized, "Car(s):        " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     car_color, font_thickness)
         cv2.putText(resized, "Motorbike:  " + str(count_list[1]), (20, 280), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     bike_color, font_thickness)
-        cv2.putText(resized, "Bus:        " + str(count_list[2]), (20, 300), cv2.FONT_HERSHEY_SIMPLEX, font_size,
+        cv2.putText(resized, "Bus(es):        " + str(count_list[2]), (20, 300), cv2.FONT_HERSHEY_SIMPLEX, font_size,
                     bus_color, font_thickness)
-        cv2.putText(resized, "Truck:      " + str(count_list[3]), (20, 320), cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(resized, "Truck(s):      " + str(count_list[3]), (20, 320), cv2.FONT_HERSHEY_SIMPLEX,
                     font_size, truck_color, font_thickness)
 
-        # Show the frames
-        cv2.imshow('Output', resized)
-
-        # To stop motion the video
-        # if cv2.waitKey(0) == ord('c'):
-        #     continue
+        # show the frames
+        cv2.imshow('Automobile detection output stream', resized)
 
         # For stopping the video
         if cv2.waitKey(1) == ord('q'):
@@ -293,39 +300,6 @@ def video_detection(video_name):
     cv2.destroyAllWindows()
 
 
-def image_detection(image_name):
-    img = cv2.imread(image_name)
-
-    blob = cv2.dnn.blobFromImage(img, 1 / 255, (input_size, input_size), [0, 0, 0], 1, crop=False)
-
-    # Set the input of the network
-    net.setInput(blob)
-    layers_names = net.getLayerNames()
-    output_names = [(layers_names[i - 1]) for i in net.getUnconnectedOutLayers()]
-    # Feed data to the network
-    outputs = net.forward(output_names)
-
-    # Find the objects from the network output
-    post_process(outputs, img, None)
-
-    # count the frequency of detected classes
-    frequency = collections.Counter(detected_class_names)
-    print(frequency)
-
-    # Draw counting texts in the frame
-    cv2.putText(img, "Car:        " + str(count_list[0]), (20, 260), cv2.FONT_HERSHEY_SIMPLEX, font_size,
-                car_color, font_thickness)
-    cv2.putText(img, "Motorbike:  " + str(count_list[1]), (20, 280), cv2.FONT_HERSHEY_SIMPLEX, font_size,
-                bike_color, font_thickness)
-    cv2.putText(img, "Bus:        " + str(count_list[2]), (20, 300), cv2.FONT_HERSHEY_SIMPLEX, font_size,
-                bus_color, font_thickness)
-    cv2.putText(img, "Truck:      " + str(count_list[3]), (20, 320), cv2.FONT_HERSHEY_SIMPLEX,
-                font_size, truck_color, font_thickness)
-
-    cv2.imshow("image", img)
-    cv2.waitKey(0)
-
-
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         video_name = './assets/speedDetectionTest.mp4'
@@ -333,14 +307,3 @@ if __name__ == '__main__':
         video_name = sys.argv[1]
     video_detection(video_name)
 
-    print(plates)
-
-    # 3/6 OK
-    # plate_detection.detect_plate(cv2.imread("./assets/N37PBK.png")) # NOT OK
-    # plate_detection.detect_plate(cv2.imread("./assets/X11TQD.png")) # OK
-    # plate_detection.detect_plate(cv2.imread("./assets/Z08TLR.png")) # OK
-    # plate_detection.detect_plate(cv2.imread("./assets/X72NDV.png")) # NOT OK
-    # plate_detection.detect_plate(cv2.imread("./assets/W76GSW.png")) # OK
-    # plate_detection.detect_plate(cv2.imread("./assets/RK2711X.png")) # NOT OK
-
-    # read plates up to half height
