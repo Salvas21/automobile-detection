@@ -183,9 +183,8 @@ def post_process(outputs, img, original_img):
 
             # if car plate already found, draw it on top of box
             global plates
-            if id in plates:
-                cv2.putText(img, "Plate: " + str(plates[id]), (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                            (0, 255, 255), 1)
+            cv2.putText(img, f"Plate: {str(plates[id]) if id in plates else ''}", (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                        (0, 255, 255), 1)
 
             # start a thread if car plate not found yet with current box position
             with lock:
