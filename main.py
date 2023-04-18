@@ -110,7 +110,6 @@ def post_process(outputs, img, original_img):
     confidence_scores = []
     detection = []
 
-    # TODO : What we do with this ???
     # Variables for speed
     distance_in_meters = 27
     time_in_seconds = 1
@@ -141,7 +140,6 @@ def post_process(outputs, img, original_img):
             color = [int(c) for c in colors[class_ids[i]]]
             name = class_names[class_ids[i]]
 
-            # TODO : clean this up
             # detect speed from this random equation with y value of the detected object
             d_total = math.sqrt(y ** 2)
             v = d_total / prev_frame_time * 3.6
@@ -195,7 +193,6 @@ def post_process(outputs, img, original_img):
                     thread.start()
                     threads.append(thread)
 
-        # TODO : might be better to not wait for threads to finish ?
         for thread in threads:
             thread.join()
 
