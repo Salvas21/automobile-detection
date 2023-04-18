@@ -1,8 +1,5 @@
-import collections
-import math
 import sys
 import threading
-import time
 
 import cv2
 import numpy as np
@@ -110,12 +107,6 @@ def post_process(outputs, img, original_img):
     confidence_scores = []
     detection = []
 
-    # Variables for speed
-    distance_in_meters = 27
-    time_in_seconds = 1
-    prev_frame_time = 1
-    fps = 30
-
     # selection of the outputs in relation to its confidence and the confidence threshold
     for output in outputs:
         for det in output:
@@ -140,9 +131,7 @@ def post_process(outputs, img, original_img):
             color = [int(c) for c in colors[class_ids[i]]]
             name = class_names[class_ids[i]]
 
-            # detect speed from this random equation with y value of the detected object
-            d_total = math.sqrt(y ** 2)
-            v = d_total / prev_frame_time * 3.6
+            # detect speed from this average equation with y value of the detected object
             v = (600 - (y * 0.6)) / 6
 
             # draw km/h and class name and confidence
@@ -181,8 +170,8 @@ def post_process(outputs, img, original_img):
 
             # if car plate already found, draw it on top of box
             global plates
-            cv2.putText(img, f"Plate: {str(plates[id]) if id in plates else ''}", (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                        (0, 255, 255), 1)
+            cv2.putText(img, f"Plate: {str(plates[id]) if id in plates else ''}", (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, (0, 255, 255), 1)
 
             # start a thread if car plate not found yet with current box position
             with lock:
@@ -195,10 +184,6 @@ def post_process(outputs, img, original_img):
 
         for thread in threads:
             thread.join()
-
-    new_frame_time = time.time()
-    fps = 1 / (new_frame_time - prev_frame_time)
-    prev_frame_time = new_frame_time
 
 
 def handle_color_detection_of_box(box_id, img):
